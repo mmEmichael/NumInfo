@@ -22,7 +22,7 @@ services:
         condition: service_healthy
     volumes:
       - ./services/worker:/app
-    #restart: unless-stopped
+    restart: unless-stopped
   nginx:
     image: nginx:alpine
     container_name: nginx-proxy
