@@ -8,6 +8,7 @@ import uuid
 # Подключение к Redis / Приложение 
 # -----------------------------------------------------------------------------
 
+
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 
@@ -19,9 +20,11 @@ redis_client = redis.Redis(
 
 app = FastAPI()
 
+
 # -----------------------------------------------------------------------------
 # API: Полуцение номеров
 # -----------------------------------------------------------------------------
+
 
 QUEUE_NAME = os.getenv("QUEUE_NAME", "tasks")
 
@@ -47,6 +50,7 @@ async def create_task(phones: list[str]):
     await pipe.execute()
 
     return {"message": "Task created", "task_id": task_id}
+
 
 # -----------------------------------------------------------------------------
 # API: Возврат результата
