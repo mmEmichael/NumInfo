@@ -1,0 +1,47 @@
+services:
+  server:
+    build: ./services/server
+    container_name: server
+    #environment:
+    # - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - worker
+    volumes:
+      - ./services/server:/app
+    restart: unless-stopped
+  worker:
+    build: ./services/worker
+    container_name: worker
+    #environment:
+    # - REDIS_URL=redis://redis:6379/0
+    #depends_on:
+    #  - redis
+    volumes:
+      - ./services/worker:/app
+    #restart: unless-stopped
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - server
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis_data:
