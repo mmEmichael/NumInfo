@@ -5,7 +5,10 @@ services:
     #environment:
     # - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - worker
+      worker:
+        condition: service_started
+      redis:
+        condition: service_healthy
     volumes:
       - ./services/server:/app
     restart: unless-stopped
@@ -14,8 +17,9 @@ services:
     container_name: worker
     #environment:
     # - REDIS_URL=redis://redis:6379/0
-    #depends_on:
-    #  - redis
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - ./services/worker:/app
     #restart: unless-stopped
