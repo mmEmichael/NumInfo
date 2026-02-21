@@ -2,8 +2,10 @@ services:
   server:
     build: ./services/server
     container_name: server
-    #environment:
-    # - REDIS_URL=redis://redis:6379/0
+    environment:
+     - REDIS_HOST=${REDIS_HOST}
+     - REDIS_PORT=${REDIS_PORT}
+     - QUEUE_NAME=${QUEUE_NAME}
     depends_on:
       worker:
         condition: service_started
@@ -15,8 +17,10 @@ services:
   worker:
     build: ./services/worker
     container_name: worker
-    #environment:
-    # - REDIS_URL=redis://redis:6379/0
+    environment:
+     - REDIS_HOST=${REDIS_HOST}
+     - REDIS_PORT=${REDIS_PORT}
+     - QUEUE_NAME=${QUEUE_NAME}
     depends_on:
       redis:
         condition: service_healthy
