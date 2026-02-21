@@ -3,9 +3,9 @@ services:
     build: ./services/server
     container_name: server
     environment:
-     - REDIS_HOST=${REDIS_HOST}
-     - REDIS_PORT=${REDIS_PORT}
-     - QUEUE_NAME=${QUEUE_NAME}
+    - REDIS_HOST=${REDIS_HOST:-redis}
+    - REDIS_PORT=${REDIS_PORT:-6379}
+    - QUEUE_NAME=${QUEUE_NAME:-tasks}
     depends_on:
       worker:
         condition: service_started
@@ -18,9 +18,9 @@ services:
     build: ./services/worker
     container_name: worker
     environment:
-     - REDIS_HOST=${REDIS_HOST}
-     - REDIS_PORT=${REDIS_PORT}
-     - QUEUE_NAME=${QUEUE_NAME}
+    - REDIS_HOST=${REDIS_HOST:-redis}
+    - REDIS_PORT=${REDIS_PORT:-6379}
+    - QUEUE_NAME=${QUEUE_NAME:-tasks}
     depends_on:
       redis:
         condition: service_healthy
