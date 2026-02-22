@@ -1,9 +1,18 @@
 import os
 import asyncio
+import logging
 
 import redis.asyncio as redis
 import phonenumbers
 from phonenumbers import carrier, geocoder
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------------------------------------------
@@ -55,6 +64,7 @@ async def process_one_phone(phone: str, semaphore: asyncio.Semaphore) -> tuple[s
             result = await asyncio.to_thread(parse_phone, phone)
             return (phone, result)
         except Exception as e:
+            logger.warning(f"Ошибка разбора номера {phone}: {e}")
             return (phone, f"Error: {e}")
 
 
@@ -86,12 +96,17 @@ async def phone_service() -> None:
             continue
 
         _queue_name, task_id = res
-        print(task_id)
+        logger.info(f"Processing task: {task_id}")
+
+        # Статус в processing (по докстрингу)
+        await redis_client.set(f"task:{task_id}:status", "processing")
 
         # Собираем все номера из хеша (итератор по полям, без полной загрузки в память)
         phones = []
         async for phone, _ in redis_client.hscan_iter(f"task:{task_id}:phones"):
             phones.append(phone)
+
+        logger.info(f"Task {task_id}: processing {len(phones)} phone(s)")
 
         # Обрабатываем номера параллельно
         results = await asyncio.gather(
@@ -104,7 +119,7 @@ async def phone_service() -> None:
         for result in results:
             # Проверяем, не является ли результат объектом исключения
             if isinstance(result, Exception):
-                print(f"Критическая ошибка при обработке номера: {result}")
+                logger.error(f"Критическая ошибка при обработке номера: {result}")
                 continue
             
             # Теперь распаковка безопасна
@@ -114,6 +129,7 @@ async def phone_service() -> None:
         await pipe.execute()
 
         await redis_client.set(f"task:{task_id}:status", "processed")
+        logger.info(f"Task {task_id}: completed, {len(phones)} number(s) processed")
 
 
 # -----------------------------------------------------------------------------
@@ -122,6 +138,7 @@ async def phone_service() -> None:
 
 if __name__ == "__main__":
     try:
+        logger.info("Starting phone service worker")
         asyncio.run(phone_service())
     except KeyboardInterrupt:
-        print("\nService STOP")
+        logger.info("Service STOP")

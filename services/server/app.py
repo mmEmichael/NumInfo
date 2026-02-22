@@ -1,8 +1,11 @@
 import os
+import logging
 
 from fastapi import FastAPI
 import redis.asyncio as redis
 import uuid
+
+logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
 # Подключение к Redis / Приложение 
@@ -41,7 +44,8 @@ async def create_task(phones: list[str]):
     Возвращает task_id — по нему потом запрашивают результат через GET /result.
     """
     task_id = str(uuid.uuid4())
-    
+    logger.info(f"Creating task {task_id} for {len(phones)} phone(s)")
+
     pipe = redis_client.pipeline()
     pipe.set(f"task:{task_id}:status", "accepted")
     for phone in phones:
@@ -49,6 +53,7 @@ async def create_task(phones: list[str]):
     pipe.lpush(QUEUE_NAME, task_id)
     await pipe.execute()
 
+    logger.debug(f"Task {task_id} pushed to queue {QUEUE_NAME}")
     return {"message": "Task created", "task_id": task_id}
 
 
@@ -69,12 +74,15 @@ async def get_result(task_id: str):
     """
     status = await redis_client.get(f"task:{task_id}:status")
     if status in ["accepted", "processing"]:
+        logger.debug(f"Result requested for task {task_id}: still {status}")
         return f"Task ID: {task_id} {status}"
     elif status == "processed":
         result = await redis_client.hgetall(f"task:{task_id}:phones")
         await delete_task(task_id)
+        logger.info(f"Task {task_id}: result delivered, task data deleted")
         return result
     else:
+        logger.warning(f"Task not found or already consumed: {task_id}")
         return "Task not found"
 
 
